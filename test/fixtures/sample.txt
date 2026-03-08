@@ -1,0 +1,7 @@
+This is a sample text file for testing the RAG pipeline.
+
+It contains multiple paragraphs that can be chunked and processed.
+
+The file loader should be able to read this file and create a Document object from its contents. The chunker should then split it into smaller pieces for embedding and storage.
+
+This is the final paragraph of the sample document.

@@ -1,0 +1,30 @@
+default: &default
+  chunker:
+    strategy: recursive_character
+    chunk_size: 1000
+    chunk_overlap: 200
+  embedder:
+    provider: openai
+    model: text-embedding-3-small
+  store:
+    provider: memory
+    dimension: 1536
+  generator:
+    provider: openai
+    model: gpt-4o
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+  store:
+    provider: memory
+    dimension: 1536
+
+production:
+  <<: *default
+  store:
+    provider: zvec
+    path: db/vectors
+    dimension: 1536
