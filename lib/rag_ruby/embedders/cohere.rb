@@ -39,7 +39,10 @@ module RagRuby
           raise "Cohere API error (#{response.code}): #{response.body}"
         end
 
-        JSON.parse(response.body)["embeddings"]
+        parsed = JSON.parse(response.body)
+        embeddings = parsed["embeddings"]
+        raise RagRuby::Error, "No embeddings in Cohere response" if embeddings.nil? || embeddings.empty?
+        embeddings
       end
 
       def dimension

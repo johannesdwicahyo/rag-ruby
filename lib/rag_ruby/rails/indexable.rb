@@ -47,8 +47,10 @@ module RagRuby
     end
 
     def rag_remove_record
-      # Remove from store by metadata filter
-      # Implementation depends on store capabilities
+      store = self.class.rag_pipeline&.config&.store_instance
+      if store && store.respond_to?(:delete)
+        store.delete(id.to_s)
+      end
     end
 
     class InlineLoader < Loaders::Base

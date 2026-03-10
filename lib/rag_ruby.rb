@@ -27,6 +27,9 @@ require_relative "rag_ruby/pipeline"
 
 module RagRuby
   class Error < StandardError; end
+  class ConfigurationError < Error; end
+  class EmbeddingError < Error; end
+  class GenerationError < Error; end
 
   class << self
     def pipeline

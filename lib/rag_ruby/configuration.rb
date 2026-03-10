@@ -26,13 +26,16 @@ module RagRuby
     }.freeze
 
     attr_accessor :loader_instance, :embedder_instance, :store_instance, :generator_instance,
-                  :chunk_size, :chunk_overlap, :chunk_strategy
+                  :chunk_size, :chunk_overlap, :chunk_strategy,
+                  :http_timeout, :read_timeout
 
     def initialize
       @callbacks = Hash.new { |h, k| h[k] = [] }
       @chunk_size = 1000
       @chunk_overlap = 200
       @chunk_strategy = :recursive_character
+      @http_timeout = 30
+      @read_timeout = 60
     end
 
     def loader(name, **opts)

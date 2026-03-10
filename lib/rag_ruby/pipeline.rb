@@ -134,6 +134,9 @@ module RagRuby
     def embed_chunks(chunks)
       texts = chunks.map(&:text)
       embeddings = @config.embedder_instance.embed_batch(texts)
+      if embeddings.length != chunks.length
+        raise RagRuby::Error, "Embedding count (#{embeddings.length}) doesn't match chunk count (#{chunks.length})"
+      end
       chunks.each_with_index do |chunk, i|
         chunk.embedding = embeddings[i]
       end
@@ -150,8 +153,9 @@ module RagRuby
     def build_context(sources, max_chars: 12000)
       context = ""
       sources.each do |source|
-        candidate = context + "\n---\n" + source.text
-        break if candidate.length > max_chars
+        separator = context.empty? ? "" : "\n---\n"
+        candidate = context + separator + source.text
+        break if candidate.length > max_chars && !context.empty?
         context = candidate
       end
       context.strip

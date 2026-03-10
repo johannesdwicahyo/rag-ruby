@@ -31,7 +31,7 @@ module RagRuby
       private
 
       def fetch(uri, redirect_limit: 5)
-        raise "Too many redirects" if redirect_limit == 0
+        raise RagRuby::Error, "Too many redirects for #{uri}" if redirect_limit == 0
 
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = uri.scheme == "https"
@@ -43,7 +43,9 @@ module RagRuby
 
         case response
         when Net::HTTPRedirection
-          fetch(URI.parse(response["location"]), redirect_limit: redirect_limit - 1)
+          location = response["location"]
+          raise RagRuby::Error, "Redirect with no location header" if location.nil?
+          fetch(URI.parse(location), redirect_limit: redirect_limit - 1)
         when Net::HTTPSuccess
           response
         else

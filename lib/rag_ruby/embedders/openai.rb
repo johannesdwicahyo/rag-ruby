@@ -40,24 +40,44 @@ module RagRuby
       private
 
       def request(input)
-        uri = URI.parse(ENDPOINT)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.open_timeout = 30
-        http.read_timeout = 60
+        request_with_retry do
+          uri = URI.parse(ENDPOINT)
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.use_ssl = true
+          http.open_timeout = 30
+          http.read_timeout = 60
 
-        req = Net::HTTP::Post.new(uri)
-        req["Authorization"] = "Bearer #{@api_key}"
-        req["Content-Type"] = "application/json"
-        req.body = JSON.generate(model: @model, input: input)
+          req = Net::HTTP::Post.new(uri)
+          req["Authorization"] = "Bearer #{@api_key}"
+          req["Content-Type"] = "application/json"
+          req.body = JSON.generate(model: @model, input: input)
 
-        response = http.request(req)
+          response = http.request(req)
 
-        unless response.is_a?(Net::HTTPSuccess)
-          raise "OpenAI API error (#{response.code}): #{response.body}"
+          unless response.is_a?(Net::HTTPSuccess)
+            raise "OpenAI API error (#{response.code}): #{response.body}"
+          end
+
+          JSON.parse(response.body)
         end
+      end
 
-        JSON.parse(response.body)
+      def request_with_retry(max_retries: 3)
+        retries = 0
+        begin
+          yield
+        rescue => e
+          retries += 1
+          if retries <= max_retries && retryable?(e)
+            sleep(2 ** (retries - 1))
+            retry
+          end
+          raise
+        end
+      end
+
+      def retryable?(e)
+        e.message.match?(/429|500|502|503/)
       end
     end
   end
