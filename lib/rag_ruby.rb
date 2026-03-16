@@ -15,12 +15,19 @@ require_relative "rag_ruby/loaders/active_record"
 
 require_relative "rag_ruby/embedders/base"
 require_relative "rag_ruby/embedders/openai"
+require_relative "rag_ruby/embedders/cohere"
+require_relative "rag_ruby/embedders/voyage"
+require_relative "rag_ruby/embedders/ollama"
+require_relative "rag_ruby/embedders/hugging_face"
 
 require_relative "rag_ruby/stores/base"
 require_relative "rag_ruby/stores/memory"
 
 require_relative "rag_ruby/generators/base"
 require_relative "rag_ruby/generators/openai"
+require_relative "rag_ruby/generators/anthropic"
+require_relative "rag_ruby/generators/gemini"
+require_relative "rag_ruby/generators/ollama"
 
 require_relative "rag_ruby/configuration"
 require_relative "rag_ruby/pipeline"

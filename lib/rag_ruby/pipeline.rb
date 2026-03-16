@@ -54,8 +54,20 @@ module RagRuby
       # Embed the question
       query_embedding = @config.embedder_instance.embed(question)
 
-      # Search the store
-      results = @config.store_instance.search(query_embedding, top_k: top_k, filter: filter)
+      # Search the store (with retrieval strategy)
+      search_opts = { top_k: top_k, filter: filter }
+      if @config.retrieval_strategy == :mmr
+        search_opts[:strategy] = :mmr
+        search_opts[:lambda] = @config.mmr_lambda
+        search_opts[:fetch_k] = @config.mmr_fetch_k
+      end
+
+      results = @config.store_instance.search(query_embedding, **search_opts)
+
+      # Rerank if configured
+      if @config.reranker_instance
+        results = rerank_results(question, results)
+      end
 
       # Build sources from results
       sources = results.map do |result|
@@ -159,6 +171,22 @@ module RagRuby
         context = candidate
       end
       context.strip
+    end
+
+    def rerank_results(query, results)
+      documents = results.map do |r|
+        chunk = r[:chunk]
+        chunk.respond_to?(:text) ? chunk.text : chunk.to_s
+      end
+
+      reranked = @config.reranker_instance.rerank(query, documents)
+
+      reranked.map do |rr|
+        idx = rr.respond_to?(:index) ? rr.index : rr[:index]
+        score = rr.respond_to?(:score) ? rr.score : rr[:score]
+        original = results[idx]
+        original.merge(score: score)
+      end
     end
 
     def fire(event, *args)

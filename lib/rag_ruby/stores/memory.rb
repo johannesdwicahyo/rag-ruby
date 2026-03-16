@@ -14,7 +14,7 @@ module RagRuby
         @entries[id] = Entry.new(id: id, embedding: embedding, metadata: metadata, chunk: chunk)
       end
 
-      def search(embedding, top_k: 5, filter: nil)
+      def search(embedding, top_k: 5, filter: nil, strategy: :similarity, lambda: 0.5, fetch_k: 20)
         results = @entries.values
 
         if filter
@@ -23,11 +23,16 @@ module RagRuby
           end
         end
 
-        results
+        scored = results
           .map { |entry| [entry, cosine_similarity(embedding, entry.embedding)] }
           .sort_by { |_, score| -score }
-          .first(top_k)
-          .map { |entry, score| { id: entry.id, score: score, metadata: entry.metadata, chunk: entry.chunk } }
+
+        if strategy == :mmr
+          mmr_select(scored, embedding, top_k: top_k, lambda: lambda, fetch_k: fetch_k)
+        else
+          scored.first(top_k)
+            .map { |entry, score| { id: entry.id, score: score, metadata: entry.metadata, chunk: entry.chunk } }
+        end
       end
 
       def delete(id)
@@ -51,6 +56,43 @@ module RagRuby
         return 0.0 if mag_a == 0 || mag_b == 0
 
         dot / (mag_a * mag_b)
+      end
+
+      # Maximal Marginal Relevance: balances relevance and diversity
+      def mmr_select(scored, query_embedding, top_k:, lambda:, fetch_k:)
+        candidates = scored.first(fetch_k)
+        return [] if candidates.empty?
+
+        selected = []
+        remaining = candidates.dup
+
+        top_k.times do
+          break if remaining.empty?
+
+          best = nil
+          best_mmr = -Float::INFINITY
+
+          remaining.each do |entry, relevance|
+            if selected.empty?
+              diversity = 0.0
+            else
+              diversity = selected.map { |sel, _| cosine_similarity(entry.embedding, sel.embedding) }.max
+            end
+
+            mmr_score = lambda * relevance - (1.0 - lambda) * diversity
+
+            if mmr_score > best_mmr
+              best_mmr = mmr_score
+              best = [entry, relevance]
+            end
+          end
+
+          break unless best
+          selected << best
+          remaining.delete(best)
+        end
+
+        selected.map { |entry, score| { id: entry.id, score: score, metadata: entry.metadata, chunk: entry.chunk } }
       end
     end
   end
